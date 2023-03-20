@@ -44,16 +44,6 @@ os.system("git clone https://github.com/huggingface/transformers")
 os.system("cd transformers; pip install .")
 
 
-# ## BERT Layer
-# 
-# The main body of a Transformer model is a stacking of Transformer blocks. Let's benchmark the performance of a single block. In BERT, it is often called a BERT layer. Let's construct one such layer from the [BERT large model](https://huggingface.co/bert-large-uncased). We use 16-bit floating points for better performance. 
-
-from transformers import AutoConfig, BertLayer
-
-config = AutoConfig.from_pretrained("bert-large-uncased")
-layer = BertLayer(config).bfloat16().cuda()
-
-
 # Then define a function to benchmark both forward and forward with backward performance using different sequence lengths and batch sizes. 
 
 def layer_benchmark(layer, hidden_size, seq_lens, batch_sizes, cross_attention=False):
@@ -72,13 +62,6 @@ def layer_benchmark(layer, hidden_size, seq_lens, batch_sizes, cross_attention=F
             results[f'batch={b}'][f'bwd seq_len={s}'] = 3 * forward / walltime(
                 f'layer(X, {encoder_state})[0].sum().backward()', var_dict(layer, X))            
     return pd.DataFrame(results)
-
-
-# In BERT pre-training, we often train with a sequence of 128 (stage 1) or 512 (stage 2). Let's test its performance. 
-
-df = layer_benchmark(layer, config.hidden_size, [512], [8, 16, 32, 64])
-
-print(df.to_string())
 
 
 # ## GPT-2 Block
